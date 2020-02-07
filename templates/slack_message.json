@@ -1,0 +1,54 @@
+[
+  {
+    "type": "section",
+    "text": {
+      "type": "mrkdwn",
+      "text": "*{{.GroupName}}*"
+    }
+  },
+  {
+    "type": "context",
+    "elements": {{.UserElements}}
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "section",
+    "fields": [
+      {
+        "type": "mrkdwn",
+        "text": "*Project:* <https://projects.intra.42.fr/projects/{{.ProjectSlug}}|{{.ProjectSlug}}>"
+      },
+      {
+        "type": "mrkdwn",
+        "text": "*Grade:* {{.Grade}}"
+      },
+      {
+        "type": "mrkdwn",
+        "text": "*Created:* {{.CreatedAt}}"
+      },
+      {
+        "type": "mrkdwn",
+        "text": "*Closed:* {{.ClosedAt}}"
+      },
+      {
+        "type": "mrkdwn",
+        "text": "*Code Check:* {{.CheckResult}}"
+      }
+    ]
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "context",
+    "elements": [
+      {
+        "type": "mrkdwn",
+        "verbatim": true,
+        "text": "*Repo:* {{.RepoURL}}\n*Last update:* {{.LastUpdate}} _({{.Commits}} commits)_"
+      }
+    ]
+  }
+]

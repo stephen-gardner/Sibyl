@@ -1,0 +1,12 @@
+{
+  "ListenDomain": "https://bot-host.42.us.org/",
+  "ListenPort": 4443,
+  "CampusDomain": "42.us.org",
+  "BatmanEndpoint": "https://batman.42.us.org/",
+  "RepoAddress": "vgs-fd.42.us.org",
+  "RepoPort": 4222,
+  "RepoUser": "sibyl",
+  "RepoPrivateKeyPath": "/root/sibyl/.ssh/sibyl_id_rsa",
+  "RepoPath": "/space/repos",
+  "SlackReportChannel": "GLGCJDJ0L"
+}
