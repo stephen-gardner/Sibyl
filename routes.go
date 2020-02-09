@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 
@@ -27,7 +26,7 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	log.Printf(" IN (%s):\n%s\n", deliveryID, string(data))
+	fmt.Printf("<%s> IN:\n%s\n", deliveryID, string(data))
 	team := &intra.WebTeam{}
 	if err := json.Unmarshal(data, &team); err != nil {
 		err = fmt.Errorf("[400] %s: %s", err.Error(), string(data))

@@ -26,11 +26,11 @@
       },
       {
         "type": "mrkdwn",
-        "text": "*Created:* {{.CreatedAt}}"
+        "text": "*Created:* <!date^{{.CreatedAt}}^{date_num} {time_secs}|{{.CreatedAtAlt}}>"
       },
       {
         "type": "mrkdwn",
-        "text": "*Closed:* {{.ClosedAt}}"
+        "text": "*Closed:* <!date^{{.ClosedAt}}^{date_num} {time_secs}|{{.ClosedAtAlt}}>"
       },
       {
         "type": "mrkdwn",
@@ -47,7 +47,7 @@
       {
         "type": "mrkdwn",
         "verbatim": true,
-        "text": "*Repo:* {{.RepoURL}}\n*Last update:* {{.LastUpdate}} _({{.Commits}} commits)_"
+        "text": "*Repo:* {{.RepoURL}}\n*Last update:* {{.LastUpdate}}"
       }
     ]
   }

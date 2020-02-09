@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strings"
 	"time"
 
@@ -72,7 +72,7 @@ func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *i
 	}
 	report.repo.url = wt.RepoURL
 	if wt.RepoURL == "" {
-		report.repo.url = "N/A"
+		report.repo.url = batmanNotApplicable
 	}
 	report.repo.uuid = wt.RepoUUID
 	report.createdAt = it.CreatedAt
@@ -96,7 +96,6 @@ func (report *teamReport) generate() (blocks string, err error) {
 		}
 	}
 	blocks, err = composeBlocks(report)
-	log.Printf("OUT (%s):\n%s\n", report.deliveryID, blocks)
 	return
 }
 
@@ -120,6 +119,7 @@ func (queue *reportQueue) processOutput() {
 	for report := range queue.out {
 		<-slackThrottle
 		blocks, err := report.generate()
+		fmt.Printf("<%s> OUT:\n%s\n", report.deliveryID, blocks)
 		if err == nil {
 			if err = slack.postBlocks(blocks); err == nil && report.repo.matches != "" {
 				err = slack.uploadMatches(report.repo.matches)

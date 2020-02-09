@@ -48,9 +48,16 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 	if err != nil {
 		return
 	}
-	lastUpdate := "never"
-	if !report.repo.lastUpdate.IsZero() {
-		lastUpdate = report.repo.lastUpdate.Format(time.RFC1123)
+	lastUpdate := "never _(0 commits)_"
+	if report.repo.url == batmanNotApplicable {
+		lastUpdate = batmanNotApplicable
+	} else if !report.repo.lastUpdate.IsZero() {
+		report.repo.lastUpdate.Unix()
+		timestamp := fmt.Sprintf("<!date^%d^{date_num} {time_secs}|%s>",
+			report.repo.lastUpdate.Unix(),
+			report.repo.lastUpdate.Local().Format(time.RFC1123),
+		)
+		lastUpdate = fmt.Sprintf("%s _(%d commits)_", timestamp, report.repo.commits)
 	}
 	groupName, _ := json.Marshal(&report.groupName)
 	data := &bytes.Buffer{}
@@ -59,8 +66,10 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		UserElements string
 		ProjectSlug  string
 		Grade        int
-		CreatedAt    string
-		ClosedAt     string
+		CreatedAt    int64
+		CreatedAtAlt string
+		ClosedAt     int64
+		ClosedAtAlt  string
 		CheckResult  string
 		RepoURL      string
 		LastUpdate   string
@@ -70,8 +79,10 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		UserElements: getUserBlockElements(report),
 		ProjectSlug:  report.projectSlug,
 		Grade:        report.finalMark,
-		CreatedAt:    report.createdAt.Local().Format(time.RFC1123),
-		ClosedAt:     report.closedAt.Local().Format(time.RFC1123),
+		CreatedAt:    report.createdAt.Unix(),
+		CreatedAtAlt: report.createdAt.Local().Format(time.RFC1123),
+		ClosedAt:     report.closedAt.Unix(),
+		ClosedAtAlt:  report.closedAt.Local().Format(time.RFC1123),
 		CheckResult:  report.repo.status,
 		RepoURL:      report.repo.url,
 		LastUpdate:   lastUpdate,
