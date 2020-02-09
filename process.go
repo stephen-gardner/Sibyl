@@ -18,7 +18,7 @@ type (
 	}
 	teamReport struct {
 		deliveryID  string
-		groupName   string
+		name        string
 		leader      string
 		projectSlug string
 		finalMark   int
@@ -31,8 +31,9 @@ type (
 			commits    int
 			lastUpdate time.Time
 		}
-		createdAt time.Time
-		closedAt  time.Time
+		createdAt     time.Time
+		closedAt      time.Time
+		teamCancelled bool
 	}
 	reportQueue struct {
 		in  chan *teamReport
@@ -43,13 +44,32 @@ type (
 // Slack rate limits files.upload to 20 requests/min
 var slackThrottle = time.Tick(time.Minute / 20)
 
+func isCancelledTeam(team *intra.Team, ps *intra.ProjectSession) bool {
+	required := 0
+	for _, scale := range ps.Scales {
+		if scale.Primary {
+			required = scale.CorrectionNumber
+			break
+		}
+	}
+	return len(team.ScaleTeams) < required
+}
+
 func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *intra.WebTeam) error {
 	it := intra.Team{}
 	if err := it.GetTeam(ctx, true, wt.ID); err != nil {
 		return err
 	}
+	ps := intra.ProjectSession{}
+	if err := ps.GetProjectSession(ctx, false, it.ProjectSessionID); err != nil {
+		return err
+	}
 	report.deliveryID = deliveryID
-	report.groupName = wt.Name
+	cursusName := "?"
+	if ps.Cursus.Name != "" {
+		cursusName = ps.Cursus.Name
+	}
+	report.name = fmt.Sprintf("[%s] _%s_", cursusName, wt.Name)
 	report.projectSlug = wt.Project.Slug
 	report.finalMark = wt.FinalMark
 	for _, user := range wt.Users {
@@ -77,6 +97,7 @@ func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *i
 	report.repo.uuid = wt.RepoUUID
 	report.createdAt = it.CreatedAt
 	report.closedAt = it.ClosedAt
+	report.teamCancelled = isCancelledTeam(&it, &ps)
 	return nil
 }
 

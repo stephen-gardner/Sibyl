@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -55,17 +56,21 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		report.repo.lastUpdate.Unix()
 		timestamp := fmt.Sprintf("<!date^%d^{date_num} {time_secs}|%s>",
 			report.repo.lastUpdate.Unix(),
-			report.repo.lastUpdate.Local().Format(time.RFC1123),
+			report.repo.lastUpdate.Local().Format(time.RFC822),
 		)
 		lastUpdate = fmt.Sprintf("%s _(%d commits)_", timestamp, report.repo.commits)
 	}
-	groupName, _ := json.Marshal(&report.groupName)
+	groupName, _ := json.Marshal(&report.name)
+	grade := strconv.Itoa(report.finalMark)
+	if report.teamCancelled {
+		grade += " _(cancelled)_"
+	}
 	data := &bytes.Buffer{}
 	err = tmpl.Execute(data, struct {
 		GroupName    string
 		UserElements string
 		ProjectSlug  string
-		Grade        int
+		Grade        string
 		CreatedAt    int64
 		CreatedAtAlt string
 		ClosedAt     int64
@@ -78,11 +83,11 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		GroupName:    string(groupName[1 : len(groupName)-1]),
 		UserElements: getUserBlockElements(report),
 		ProjectSlug:  report.projectSlug,
-		Grade:        report.finalMark,
+		Grade:        grade,
 		CreatedAt:    report.createdAt.Unix(),
-		CreatedAtAlt: report.createdAt.Local().Format(time.RFC1123),
+		CreatedAtAlt: report.createdAt.Local().Format(time.RFC822),
 		ClosedAt:     report.closedAt.Unix(),
-		ClosedAtAlt:  report.closedAt.Local().Format(time.RFC1123),
+		ClosedAtAlt:  report.closedAt.Local().Format(time.RFC822),
 		CheckResult:  report.repo.status,
 		RepoURL:      report.repo.url,
 		LastUpdate:   lastUpdate,
