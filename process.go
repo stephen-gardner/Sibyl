@@ -65,30 +65,37 @@ func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *i
 		return err
 	}
 	report.deliveryID = deliveryID
-	cursusName := "?"
-	if ps.Cursus.Name != "" {
-		cursusName = ps.Cursus.Name
+	cursusName := ps.Cursus.Name
+	if ps.Cursus.Name == "" {
+		project := intra.Project{}
+		if err := project.GetProject(ctx, false, wt.Project.ID); err != nil {
+			// We can't get deprecated projects from Intra for some reason
+			if !strings.Contains(err.Error(), "exist") {
+				return err
+			}
+		}
+		if len(project.Cursus) > 0 {
+			cursusName = project.Cursus[0].Name
+		} else {
+			cursusName = "?"
+		}
 	}
 	report.name = fmt.Sprintf("[%s] _%s_", cursusName, wt.Name)
 	report.projectSlug = wt.Project.Slug
 	report.finalMark = wt.FinalMark
+	report.leader = wt.Leader.Login
 	for _, user := range wt.Users {
-		attempt := 0
 		for _, iUser := range it.Users {
 			if iUser.Login == user.Login {
-				attempt = iUser.Occurrence + 1
-				if iUser.Leader {
-					report.leader = iUser.Login
-				}
+				report.users = append(report.users, teamReportUser{
+					name:    user.UsualFullName,
+					login:   user.Login,
+					photo:   user.ImageURL,
+					attempt: iUser.Occurrence + 1,
+				})
 				break
 			}
 		}
-		report.users = append(report.users, teamReportUser{
-			name:    user.UsualFullName,
-			login:   user.Login,
-			photo:   user.ImageURL,
-			attempt: attempt,
-		})
 	}
 	report.repo.url = wt.RepoURL
 	if wt.RepoURL == "" {
