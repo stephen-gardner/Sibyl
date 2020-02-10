@@ -54,7 +54,7 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		lastUpdate = batmanNotApplicable
 	} else if !report.repo.lastUpdate.IsZero() {
 		report.repo.lastUpdate.Unix()
-		timestamp := fmt.Sprintf("<!date^%d^{date_num} {time_secs}|%s>",
+		timestamp := fmt.Sprintf("<!date^%d^{date_short_pretty} at {time_secs}|%s>",
 			report.repo.lastUpdate.Unix(),
 			report.repo.lastUpdate.Local().Format(time.RFC822),
 		)

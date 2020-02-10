@@ -26,11 +26,11 @@
       },
       {
         "type": "mrkdwn",
-        "text": "*Created:* <!date^{{.CreatedAt}}^{date_num} {time_secs}|{{.CreatedAtAlt}}>"
+        "text": "*Created:* <!date^{{.CreatedAt}}^{date_short_pretty} at {time_secs}|{{.CreatedAtAlt}}>"
       },
       {
         "type": "mrkdwn",
-        "text": "*Closed:* <!date^{{.ClosedAt}}^{date_num} {time_secs}|{{.ClosedAtAlt}}>"
+        "text": "*Closed:* <!date^{{.ClosedAt}}^{date_short_pretty} at {time_secs}|{{.ClosedAtAlt}}>"
       },
       {
         "type": "mrkdwn",
