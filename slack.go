@@ -18,6 +18,17 @@ type slack struct {
 	channel string
 }
 
+func getSlackTimestamp(timestamp time.Time) string {
+	if timestamp.IsZero() {
+		return "N/A"
+	}
+	return fmt.Sprintf(
+		"<!date^%d^{date_short_pretty} at {time_secs}|%s>",
+		timestamp.Unix(),
+		timestamp.Format(time.RFC822),
+	)
+}
+
 func getUserBlockElements(report *teamReport) string {
 	elements := make([]string, 2*len(report.users))
 	for i, user := range report.users {
@@ -49,21 +60,26 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 	if err != nil {
 		return
 	}
-	lastUpdate := "never _(0 commits)_"
-	if report.repo.url == batmanNotApplicable {
-		lastUpdate = batmanNotApplicable
-	} else if !report.repo.lastUpdate.IsZero() {
-		report.repo.lastUpdate.Unix()
-		timestamp := fmt.Sprintf("<!date^%d^{date_short_pretty} at {time_secs}|%s>",
-			report.repo.lastUpdate.Unix(),
-			report.repo.lastUpdate.Local().Format(time.RFC822),
-		)
-		lastUpdate = fmt.Sprintf("%s _(%d commits)_", timestamp, report.repo.commits)
-	}
 	groupName, _ := json.Marshal(&report.name)
 	grade := strconv.Itoa(report.finalMark)
 	if report.teamCancelled {
 		grade += " _(cancelled)_"
+	} else if report.passed {
+		grade += " _(passed)_"
+	} else {
+		grade += " _(failed)_"
+	}
+	var lastUpdate string
+	if report.repo.url == batmanNotApplicable {
+		lastUpdate = batmanNotApplicable
+	} else if report.repo.lastUpdate.IsZero() {
+		lastUpdate = "never _(0 commits)_"
+	} else {
+		lastUpdate = fmt.Sprintf(
+			"%s _(%d commits)_",
+			getSlackTimestamp(report.repo.lastUpdate.Local()),
+			report.repo.commits,
+		)
 	}
 	data := &bytes.Buffer{}
 	err = tmpl.Execute(data, struct {
@@ -71,10 +87,8 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		UserElements string
 		ProjectSlug  string
 		Grade        string
-		CreatedAt    int64
-		CreatedAtAlt string
-		ClosedAt     int64
-		ClosedAtAlt  string
+		CreatedAt    string
+		ClosedAt     string
 		CheckResult  string
 		RepoURL      string
 		LastUpdate   string
@@ -84,10 +98,8 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		UserElements: getUserBlockElements(report),
 		ProjectSlug:  report.projectSlug,
 		Grade:        grade,
-		CreatedAt:    report.createdAt.Unix(),
-		CreatedAtAlt: report.createdAt.Local().Format(time.RFC822),
-		ClosedAt:     report.closedAt.Unix(),
-		ClosedAtAlt:  report.closedAt.Local().Format(time.RFC822),
+		CreatedAt:    getSlackTimestamp(report.createdAt.Local()),
+		ClosedAt:     getSlackTimestamp(report.closedAt.Local()),
 		CheckResult:  report.repo.status,
 		RepoURL:      report.repo.url,
 		LastUpdate:   lastUpdate,

@@ -34,6 +34,7 @@ type (
 		createdAt     time.Time
 		closedAt      time.Time
 		teamCancelled bool
+		passed        bool
 	}
 	reportQueue struct {
 		in  chan *teamReport
@@ -83,6 +84,7 @@ func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *i
 	report.name = fmt.Sprintf("[%s] _%s_", cursusName, wt.Name)
 	report.projectSlug = wt.Project.Slug
 	report.finalMark = wt.FinalMark
+	report.passed = it.Validated
 	report.leader = wt.Leader.Login
 	for _, user := range wt.Users {
 		for _, iUser := range it.Users {
