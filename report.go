@@ -56,7 +56,7 @@ func isCancelledTeam(team *intra.Team, ps *intra.ProjectSession) bool {
 
 func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *intra.WebTeam) error {
 	it := intra.Team{}
-	if err := it.GetTeam(ctx, true, wt.ID); err != nil {
+	if err := it.GetTeam(ctx, false, wt.ID); err != nil {
 		return err
 	}
 	ps := intra.ProjectSession{}
@@ -152,7 +152,7 @@ func (queue *reportQueue) processOutput() {
 		blocks, err := report.generate()
 		fmt.Printf("<%s> OUT:\n%s\n", report.deliveryID, blocks)
 		if err == nil {
-			if err = slack.postBlocks(blocks); err == nil && report.repo.matches != "" {
+			if err = slack.postMessage("", blocks, ""); err == nil && report.repo.matches != "" {
 				err = slack.uploadMatches(report.repo.matches)
 			}
 		}

@@ -11,45 +11,6 @@ import (
 	"github.com/stephen-gardner/intra"
 )
 
-type SlackInteraction struct {
-	Type string `json:"type"`
-	Team struct {
-		ID     string `json:"id"`
-		Domain string `json:"domain"`
-	} `json:"team"`
-	User struct {
-		ID       string `json:"id"`
-		Username string `json:"username"`
-		Name     string `json:"name"`
-		TeamID   string `json:"team_id"`
-	} `json:"user"`
-	APIAppID  string `json:"api_app_id"`
-	Container struct {
-		Type         string `json:"type"`
-		MessageTs    string `json:"message_ts"`
-		AttachmentID int    `json:"attachment_id"`
-		ChannelID    string `json:"channel_id"`
-		IsEphemeral  bool   `json:"is_ephemeral"`
-		IsAppUnfurl  bool   `json:"is_app_unfurl"`
-	} `json:"container"`
-	TriggerID   string `json:"trigger_id"`
-	ResponseURL string `json:"response_url"`
-	Actions     []struct {
-		Type           string `json:"type"`
-		BlockID        string `json:"block_id"`
-		ActionID       string `json:"action_id"`
-		SelectedOption struct {
-			Text struct {
-				Type  string `json:"type"`
-				Text  string `json:"text"`
-				Emoji bool   `json:"emoji"`
-			} `json:"text"`
-			Value string `json:"value"`
-		} `json:"selected_option"`
-		ActionTs string `json:"action_ts"`
-	} `json:"actions"`
-}
-
 func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusNotImplemented)
@@ -80,10 +41,8 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	go func(rq *reportQueue, report *teamReport) {
-		queue.in <- report
-	}(queue, report)
 	w.WriteHeader(http.StatusOK)
+	queue.in <- report
 }
 
 func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
@@ -93,15 +52,25 @@ func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := r.ParseForm(); err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	payload := &SlackInteraction{}
-	if err := json.Unmarshal([]byte(r.Form.Get("payload")), payload); err != nil {
+	data := []byte(r.Form.Get("payload"))
+	if err := json.Unmarshal(data, payload); err != nil {
+		err = fmt.Errorf("[400] %s: %s", err.Error(), string(data))
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	fmt.Printf("%+v\n", payload)
+	if payload.Type != "block_actions" || len(payload.Actions) == 0 || payload.Actions[0].ActionID != "manage_report" {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
+	if err := payload.process(r.Context()); err != nil {
+		log.Println(err)
+	}
 }
 
 func listen(tq *reportQueue) {

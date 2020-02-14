@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,11 +13,81 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/stephen-gardner/intra"
 )
 
-type slack struct {
-	token   string
-	channel string
+type (
+	slack struct {
+		token   string
+		channel string
+	}
+	SlackInteraction struct {
+		Type string `json:"type"`
+		Team struct {
+			ID     string `json:"id"`
+			Domain string `json:"domain"`
+		} `json:"team"`
+		User struct {
+			ID       string `json:"id"`
+			Username string `json:"username"`
+			Name     string `json:"name"`
+			TeamID   string `json:"team_id"`
+		} `json:"user"`
+		APIAppID  string `json:"api_app_id"`
+		Container struct {
+			Type         string `json:"type"`
+			MessageTs    string `json:"message_ts"`
+			AttachmentID int    `json:"attachment_id"`
+			ChannelID    string `json:"channel_id"`
+			IsEphemeral  bool   `json:"is_ephemeral"`
+			IsAppUnfurl  bool   `json:"is_app_unfurl"`
+		} `json:"container"`
+		TriggerID   string `json:"trigger_id"`
+		ResponseURL string `json:"response_url"`
+		Actions     []struct {
+			Type           string `json:"type"`
+			BlockID        string `json:"block_id"`
+			ActionID       string `json:"action_id"`
+			SelectedOption struct {
+				Text struct {
+					Type  string `json:"type"`
+					Text  string `json:"text"`
+					Emoji bool   `json:"emoji"`
+				} `json:"text"`
+				Value string `json:"value"`
+			} `json:"selected_option"`
+			ActionTs string `json:"action_ts"`
+		} `json:"actions"`
+	}
+)
+
+func (si *SlackInteraction) process(ctx context.Context) error {
+	value := strings.Split(si.Actions[0].SelectedOption.Value, ":")
+	action := value[0]
+	teamID, _ := strconv.Atoi(value[1])
+	team := &intra.Team{}
+	if err := team.GetTeam(ctx, false, teamID); err != nil {
+		return err
+	}
+	switch action {
+	case "lock":
+		closed, err := isClosed(ctx, team)
+		if err != nil {
+			return err
+		}
+		if closed {
+			log.Println("Users are already locked")
+			return nil
+		}
+		err = closeTeam(ctx, team)
+		if err != nil {
+			return err
+		}
+		msg := fmt.Sprintf("<@%s> has locked this team's users.", si.User.ID)
+		return getSlack().postMessage(si.Container.MessageTs, "", msg)
+	}
+	return nil
 }
 
 func getSlackTimestamp(timestamp time.Time) string {
@@ -113,12 +185,19 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 	return
 }
 
-func (slack *slack) postBlocks(blocks string) error {
+func (slack *slack) postMessage(threadTS, blocks, msg string) error {
 	params := url.Values{}
 	params.Set("token", slack.token)
 	params.Set("channel", slack.channel)
-	params.Set("blocks", blocks)
-	params.Encode()
+	if threadTS != "" {
+		params.Set("thread_ts", threadTS)
+	}
+	if blocks != "" {
+		params.Set("blocks", blocks)
+	}
+	if msg != "" {
+		params.Set("text", msg)
+	}
 	resp, err := http.PostForm("https://slack.com/api/chat.postMessage", params)
 	if err != nil {
 		return err

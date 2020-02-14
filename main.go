@@ -8,22 +8,28 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/stephen-gardner/intra"
 )
 
 type Config struct {
-	ListenDomain       string
-	ListenPort         int
-	CampusDomain       string
-	BatmanEndpoint     string
-	RepoAddress        string
-	RepoPort           int
-	RepoUser           string
-	RepoPrivateKeyPath string
-	RepoPath           string
-	SlackReportChannel string
+	ListenDomain           string
+	ListenPort             int
+	CampusDomain           string
+	BatmanEndpoint         string
+	RepoAddress            string
+	RepoPort               int
+	RepoUser               string
+	RepoPrivateKeyPath     string
+	RepoPath               string
+	SlackReportChannel     string
+	InteractiveCloseReason string
 }
 
 var config Config
+
+func init() {
+	intra.SetCacheTimeout(120)
+}
 
 func outputErr(err error, fatal bool) {
 	log.Println(err)

@@ -8,5 +8,6 @@
   "RepoUser": "sibyl",
   "RepoPrivateKeyPath": "/root/sibyl/.ssh/sibyl_id_rsa",
   "RepoPath": "/space/repos",
-  "SlackReportChannel": "GLGCJDJ0L"
+  "SlackReportChannel": "GLGCJDJ0L",
+  "InteractiveCloseReason": "Academic integrity issue—contact @Iris via Slack to resolve the situation."
 }
