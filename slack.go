@@ -83,6 +83,7 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 	}
 	data := &bytes.Buffer{}
 	err = tmpl.Execute(data, struct {
+		TeamID       int
 		GroupName    string
 		UserElements string
 		ProjectSlug  string
@@ -94,6 +95,7 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 		LastUpdate   string
 		Commits      int
 	}{
+		TeamID:       report.teamID,
 		GroupName:    string(groupName[1 : len(groupName)-1]),
 		UserElements: getUserBlockElements(report),
 		ProjectSlug:  report.projectSlug,

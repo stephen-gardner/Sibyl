@@ -4,6 +4,54 @@
     "text": {
       "type": "mrkdwn",
       "text": "*{{.GroupName}}*"
+    },
+    "accessory": {
+      "type": "overflow",
+      "options": [
+        {
+          "text": {
+            "type": "plain_text",
+            "text": ":lock: Lock Users",
+            "emoji": true
+          },
+          "value": "lock:{{.TeamID}}"
+        },
+        {
+          "text": {
+            "type": "plain_text",
+            "text": ":unlock: Unlock Users",
+            "emoji": true
+          },
+          "value": "unlock:{{.TeamID}}"
+        },
+        {
+          "text": {
+            "type": "plain_text",
+            "text": ":exclamation: Flag as Cheating",
+            "emoji": true
+          },
+          "value": "flag_cheating:{{.TeamID}}"
+        }
+      ],
+      "action_id": "manage_report",
+      "confirm": {
+        "title": {
+          "type": "plain_text",
+          "text": "Are you sure?"
+        },
+        "text": {
+          "type": "plain_text",
+          "text": "This action will be publicly logged."
+        },
+        "confirm": {
+          "type": "plain_text",
+          "text": "Do it"
+        },
+        "deny": {
+          "type": "plain_text",
+          "text": "Fuck that!"
+        }
+      }
     }
   },
   {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
@@ -46,12 +47,24 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
+func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(string(data))
+	w.WriteHeader(http.StatusOK)
+}
+
 func listen(tq *reportQueue) {
 	http.HandleFunc("/teams/marked", tq.handleTeamMarked)
 	// Display picture for anonymized accounts
 	http.HandleFunc("/3b3.jpg", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, "images/3b3.jpg")
 	})
+	http.HandleFunc("/sibyl/slack", handleSlackInteraction)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", config.ListenPort), nil); err != nil {
 		outputErr(err, true)
 	}

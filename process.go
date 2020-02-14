@@ -18,6 +18,7 @@ type (
 	}
 	teamReport struct {
 		deliveryID  string
+		teamID      int
 		name        string
 		leader      string
 		projectSlug string
@@ -42,9 +43,6 @@ type (
 	}
 )
 
-// Slack rate limits files.upload to 20 requests/min
-var slackThrottle = time.Tick(time.Minute / 20)
-
 func isCancelledTeam(team *intra.Team, ps *intra.ProjectSession) bool {
 	required := 0
 	for _, scale := range ps.Scales {
@@ -66,6 +64,7 @@ func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *i
 		return err
 	}
 	report.deliveryID = deliveryID
+	report.teamID = wt.ID
 	cursusName := ps.Cursus.Name
 	if ps.Cursus.Name == "" {
 		project := intra.Project{}
@@ -146,6 +145,8 @@ func (queue *reportQueue) processInput() {
 
 func (queue *reportQueue) processOutput() {
 	slack := getSlack()
+	// Slack rate limits files.upload to 20 requests/min
+	slackThrottle := time.Tick(time.Minute / 20)
 	for report := range queue.out {
 		<-slackThrottle
 		blocks, err := report.generate()
