@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -62,25 +61,25 @@ type (
 	}
 )
 
-func (si *SlackInteraction) process(ctx context.Context) error {
+func (si *SlackInteraction) process() error {
 	value := strings.Split(si.Actions[0].SelectedOption.Value, ":")
 	action := value[0]
 	teamID, _ := strconv.Atoi(value[1])
 	team := &intra.Team{}
-	if err := team.GetTeam(ctx, false, teamID); err != nil {
+	if err := team.GetTeam(context.Background(), false, teamID); err != nil {
 		return err
 	}
 	switch action {
 	case "lock":
-		closed, err := isClosed(ctx, team)
+		closed, err := isClosed(context.Background(), team)
 		if err != nil {
 			return err
 		}
 		if closed {
-			log.Println("Users are already locked")
-			return nil
+			msg := "This team's users have already been locked."
+			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
 		}
-		err = closeTeam(ctx, team)
+		err = closeTeam(context.Background(), team)
 		if err != nil {
 			return err
 		}
@@ -183,6 +182,23 @@ func composeBlocks(report *teamReport) (blocks string, err error) {
 	err = json.Compact(compacted, data.Bytes())
 	blocks = compacted.String()
 	return
+}
+
+func (slack *slack) postEphemeralMessage(threadTS, userID, msg string) error {
+	params := url.Values{}
+	params.Set("token", slack.token)
+	params.Set("channel", slack.channel)
+	if threadTS != "" {
+		params.Set("thread_ts", threadTS)
+	}
+	params.Set("user", userID)
+	params.Set("text", msg)
+	resp, err := http.PostForm("https://slack.com/api/chat.postEphemeral", params)
+	if err != nil {
+		return err
+	}
+	_ = resp.Body.Close()
+	return nil
 }
 
 func (slack *slack) postMessage(threadTS, blocks, msg string) error {

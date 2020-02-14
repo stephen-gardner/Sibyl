@@ -41,8 +41,10 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	go func(queue *reportQueue, report *teamReport) {
+		queue.in <- report
+	}(queue, report)
 	w.WriteHeader(http.StatusOK)
-	queue.in <- report
 }
 
 func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
@@ -67,10 +69,12 @@ func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
+	go func(payload *SlackInteraction) {
+		if err := payload.process(); err != nil {
+			log.Println(err)
+		}
+	}(payload)
 	w.WriteHeader(http.StatusOK)
-	if err := payload.process(r.Context()); err != nil {
-		log.Println(err)
-	}
 }
 
 func listen(tq *reportQueue) {
