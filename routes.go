@@ -11,6 +11,45 @@ import (
 	"github.com/stephen-gardner/intra"
 )
 
+type SlackInteraction struct {
+	Type string `json:"type"`
+	Team struct {
+		ID     string `json:"id"`
+		Domain string `json:"domain"`
+	} `json:"team"`
+	User struct {
+		ID       string `json:"id"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+		TeamID   string `json:"team_id"`
+	} `json:"user"`
+	APIAppID  string `json:"api_app_id"`
+	Container struct {
+		Type         string `json:"type"`
+		MessageTs    string `json:"message_ts"`
+		AttachmentID int    `json:"attachment_id"`
+		ChannelID    string `json:"channel_id"`
+		IsEphemeral  bool   `json:"is_ephemeral"`
+		IsAppUnfurl  bool   `json:"is_app_unfurl"`
+	} `json:"container"`
+	TriggerID   string `json:"trigger_id"`
+	ResponseURL string `json:"response_url"`
+	Actions     []struct {
+		Type           string `json:"type"`
+		BlockID        string `json:"block_id"`
+		ActionID       string `json:"action_id"`
+		SelectedOption struct {
+			Text struct {
+				Type  string `json:"type"`
+				Text  string `json:"text"`
+				Emoji bool   `json:"emoji"`
+			} `json:"text"`
+			Value string `json:"value"`
+		} `json:"selected_option"`
+		ActionTs string `json:"action_ts"`
+	} `json:"actions"`
+}
+
 func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusNotImplemented)
@@ -48,23 +87,30 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 }
 
 func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-	fmt.Println(string(data))
+	if err := r.ParseForm(); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	payload := &SlackInteraction{}
+	if err := json.Unmarshal([]byte(r.Form.Get("payload")), payload); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	fmt.Printf("%+v\n", payload)
 	w.WriteHeader(http.StatusOK)
 }
 
 func listen(tq *reportQueue) {
+	http.HandleFunc("/sibyl/slack", handleSlackInteraction)
 	http.HandleFunc("/teams/marked", tq.handleTeamMarked)
 	// Display picture for anonymized accounts
 	http.HandleFunc("/3b3.jpg", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, "images/3b3.jpg")
 	})
-	http.HandleFunc("/sibyl/slack", handleSlackInteraction)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", config.ListenPort), nil); err != nil {
 		outputErr(err, true)
 	}
