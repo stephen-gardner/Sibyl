@@ -8,30 +8,27 @@ import (
 	"github.com/stephen-gardner/intra"
 )
 
-func isClosed(ctx context.Context, team *intra.Team) (bool, error) {
+func isClosed(ctx context.Context, team *intra.Team) (bool, intra.UserCloses, error) {
+	res := intra.UserCloses{}
 	for _, user := range team.Users {
 		userCloses := intra.UserCloses{}
 		params := url.Values{}
 		params.Set("filter[user_id]", strconv.Itoa(user.ID))
 		params.Set("filter[state]", "close")
-		if err := userCloses.GetAllCloses(ctx, true, params); err != nil {
-			return false, err
+		if err := userCloses.GetAllCloses(ctx, false, params); err != nil {
+			return false, nil, err
 		}
 		if len(userCloses) == 0 {
-			return false, nil
+			continue
 		}
-		closed := false
 		for _, userClose := range userCloses {
 			if userClose.Reason == config.InteractiveCloseReason {
-				closed = true
+				res = append(res, userClose)
 				break
 			}
 		}
-		if !closed {
-			return false, nil
-		}
 	}
-	return true, nil
+	return len(res) == len(team.Users), res, nil
 }
 
 func closeTeam(ctx context.Context, team *intra.Team) error {
@@ -39,7 +36,7 @@ func closeTeam(ctx context.Context, team *intra.Team) error {
 		userClose := intra.UserClose{}
 		if _, _, err := userClose.CloseUser(
 			ctx,
-			true,
+			false,
 			user.ID,
 			intra.CloseSelf,
 			intra.CloseKindOther,
@@ -49,4 +46,14 @@ func closeTeam(ctx context.Context, team *intra.Team) error {
 		}
 	}
 	return nil
+}
+
+func uncloseTeam(ctx context.Context, userCloses intra.UserCloses) error {
+	var err error
+	for _, userClose := range userCloses {
+		if _, _, e := userClose.Unclose(ctx, false); e != nil && err == nil {
+			err = e
+		}
+	}
+	return err
 }

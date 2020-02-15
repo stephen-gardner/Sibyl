@@ -71,22 +71,35 @@ func (si *SlackInteraction) process() error {
 	}
 	switch action {
 	case "lock":
-		closed, err := isClosed(context.Background(), team)
+		closed, _, err := isClosed(context.Background(), team)
 		if err != nil {
 			return err
 		}
 		if closed {
-			msg := "This team's users have already been locked."
+			msg := "This team's users have already been locked for academic integrity issues."
 			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
 		}
-		err = closeTeam(context.Background(), team)
+		if err = closeTeam(context.Background(), team); err == nil {
+			msg := fmt.Sprintf("<@%s> has locked this team's users.", si.User.ID)
+			err = getSlack().postMessage(si.Container.MessageTs, "", msg)
+		}
+		return err
+	case "unlock":
+		closed, closes, err := isClosed(context.Background(), team)
 		if err != nil {
 			return err
 		}
-		msg := fmt.Sprintf("<@%s> has locked this team's users.", si.User.ID)
-		return getSlack().postMessage(si.Container.MessageTs, "", msg)
+		if !closed {
+			msg := "This team's users are not currently locked for academic integrity issues."
+			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
+		}
+		if err = uncloseTeam(context.Background(), closes); err == nil {
+			msg := fmt.Sprintf("<@%s> has unlocked this team's users.", si.User.ID)
+			err = getSlack().postMessage(si.Container.MessageTs, "", msg)
+		}
+		return err
 	}
-	return nil
+	return fmt.Errorf("unsupported action called: %s", action)
 }
 
 func getSlackTimestamp(timestamp time.Time) string {
