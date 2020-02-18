@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,94 +11,11 @@ import (
 	"strings"
 	"text/template"
 	"time"
-
-	"github.com/stephen-gardner/intra"
 )
 
-type (
-	slack struct {
-		token   string
-		channel string
-	}
-	SlackInteraction struct {
-		Type string `json:"type"`
-		Team struct {
-			ID     string `json:"id"`
-			Domain string `json:"domain"`
-		} `json:"team"`
-		User struct {
-			ID       string `json:"id"`
-			Username string `json:"username"`
-			Name     string `json:"name"`
-			TeamID   string `json:"team_id"`
-		} `json:"user"`
-		APIAppID  string `json:"api_app_id"`
-		Container struct {
-			Type         string `json:"type"`
-			MessageTs    string `json:"message_ts"`
-			AttachmentID int    `json:"attachment_id"`
-			ChannelID    string `json:"channel_id"`
-			IsEphemeral  bool   `json:"is_ephemeral"`
-			IsAppUnfurl  bool   `json:"is_app_unfurl"`
-		} `json:"container"`
-		TriggerID   string `json:"trigger_id"`
-		ResponseURL string `json:"response_url"`
-		Actions     []struct {
-			Type           string `json:"type"`
-			BlockID        string `json:"block_id"`
-			ActionID       string `json:"action_id"`
-			SelectedOption struct {
-				Text struct {
-					Type  string `json:"type"`
-					Text  string `json:"text"`
-					Emoji bool   `json:"emoji"`
-				} `json:"text"`
-				Value string `json:"value"`
-			} `json:"selected_option"`
-			ActionTs string `json:"action_ts"`
-		} `json:"actions"`
-	}
-)
-
-func (si *SlackInteraction) process() error {
-	value := strings.Split(si.Actions[0].SelectedOption.Value, ":")
-	action := value[0]
-	teamID, _ := strconv.Atoi(value[1])
-	team := &intra.Team{}
-	if err := team.GetTeam(context.Background(), false, teamID); err != nil {
-		return err
-	}
-	switch action {
-	case "lock":
-		closed, _, err := isClosed(context.Background(), team)
-		if err != nil {
-			return err
-		}
-		if closed {
-			msg := "This team's users have already been locked for academic integrity issues."
-			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
-		}
-		if err = closeTeam(context.Background(), team); err == nil {
-			msg := fmt.Sprintf("<@%s> has locked this team's users.", si.User.ID)
-			err = getSlack().postMessage(si.Container.MessageTs, "", msg)
-		}
-		return err
-	case "unlock":
-		closed, closes, err := isClosed(context.Background(), team)
-		if err != nil {
-			return err
-		}
-		if !closed {
-			msg := "This team's users are not currently locked for academic integrity issues."
-			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
-		}
-		if err = uncloseTeam(context.Background(), closes); err == nil {
-			msg := fmt.Sprintf("<@%s> has unlocked this team's users.", si.User.ID)
-			err = getSlack().postMessage(si.Container.MessageTs, "", msg)
-		}
-		return err
-	}
-	return fmt.Errorf("unsupported action called: %s", action)
+type slack struct {
+	token   string
+	channel string
 }
 
 func getSlackTimestamp(timestamp time.Time) string {
@@ -252,6 +168,6 @@ func (slack *slack) uploadMatches(matches string) error {
 func getSlack() *slack {
 	return &slack{
 		token:   os.Getenv("SLACK_TOKEN"),
-		channel: config.SlackReportChannel,
+		channel: config.Slack.Channel,
 	}
 }

@@ -46,7 +46,7 @@ func (repo gitRepo) getLastUpdate() (lastUpdate time.Time, err error) {
 func (vog vogConn) getGitRepo(repoURL, repoUUID string) gitRepo {
 	path := strings.Split(strings.Split(repoURL, ":")[1], "/")
 	path[len(path)-1] = repoUUID
-	path = append([]string{config.RepoPath}, path...)
+	path = append([]string{config.Vogsphere.Path}, path...)
 	return gitRepo{
 		conn: vog,
 		path: strings.Join(path, "/"),
@@ -63,7 +63,7 @@ func (vog *vogConn) runCommand(cmd string) ([]byte, error) {
 }
 
 func (vog *vogConn) connect() error {
-	key, err := ioutil.ReadFile(config.RepoPrivateKeyPath)
+	key, err := ioutil.ReadFile(config.Vogsphere.PrivateKeyPath)
 	if err != nil {
 		return err
 	}
@@ -72,11 +72,11 @@ func (vog *vogConn) connect() error {
 		return err
 	}
 	sshConfig := &ssh.ClientConfig{
-		User:            config.RepoUser,
+		User:            config.Vogsphere.User,
 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-	address := fmt.Sprintf("%s:%d", config.RepoAddress, config.RepoPort)
+	address := fmt.Sprintf("%s:%d", config.Vogsphere.Address, config.Vogsphere.Port)
 	conn, err := ssh.Dial("tcp", address, sshConfig)
 	vog.Client = conn
 	return err

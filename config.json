@@ -1,13 +1,23 @@
 {
-  "ListenDomain": "https://bot-host.42.us.org/",
-  "ListenPort": 4443,
-  "CampusDomain": "42.us.org",
-  "BatmanEndpoint": "https://batman.42.us.org/",
-  "RepoAddress": "vgs-fd.42.us.org",
-  "RepoPort": 4222,
-  "RepoUser": "sibyl",
-  "RepoPrivateKeyPath": "/root/sibyl/.ssh/sibyl_id_rsa",
-  "RepoPath": "/space/repos",
-  "SlackReportChannel": "GLGCJDJ0L",
-  "InteractiveCloseReason": "Academic integrity issue—contact @Iris via Slack to resolve the situation."
+  "listenDomain": "https://bot-host.42.us.org/",
+  "listenPort": 4443,
+  "database": {
+    "address": "localhost:8889",
+    "user": "root",
+    "password": "root",
+    "name": "sibyl?charset=utf8mb4&parseTime=True&loc=Local"
+  },
+  "campusDomain": "42.us.org",
+  "batmanEndpoint": "https://batman.42.us.org/",
+  "vogsphere": {
+    "address": "vgs-fd.42.us.org",
+    "port": 4222,
+    "user": "sibyl",
+    "privateKeyPath": "/Users/stephen/.ssh/sibyl_id_rsa",
+    "path": "/space/repos"
+  },
+  "slack": {
+    "channel": "GLGCJDJ0L",
+    "interactiveCloseReason": "Academic integrity issue—contact @Iris via Slack to resolve the situation."
+  }
 }

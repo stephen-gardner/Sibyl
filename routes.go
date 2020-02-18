@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 
@@ -47,21 +46,21 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
+func handleInteraction(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		log.Println(err)
+		outputErr(err, false)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	payload := &SlackInteraction{}
+	payload := &Interaction{}
 	data := []byte(r.Form.Get("payload"))
 	if err := json.Unmarshal(data, payload); err != nil {
 		err = fmt.Errorf("[400] %s: %s", err.Error(), string(data))
-		log.Println(err)
+		outputErr(err, false)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -69,16 +68,16 @@ func handleSlackInteraction(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-	go func(payload *SlackInteraction) {
+	go func(payload *Interaction) {
 		if err := payload.process(); err != nil {
-			log.Println(err)
+			outputErr(err, false)
 		}
 	}(payload)
 	w.WriteHeader(http.StatusOK)
 }
 
 func listen(tq *reportQueue) {
-	http.HandleFunc("/sibyl/slack", handleSlackInteraction)
+	http.HandleFunc("/sibyl/slack", handleInteraction)
 	http.HandleFunc("/teams/marked", tq.handleTeamMarked)
 	// Display picture for anonymized accounts
 	http.HandleFunc("/3b3.jpg", func(writer http.ResponseWriter, request *http.Request) {

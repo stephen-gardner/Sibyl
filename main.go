@@ -12,17 +12,27 @@ import (
 )
 
 type Config struct {
-	ListenDomain           string
-	ListenPort             int
-	CampusDomain           string
-	BatmanEndpoint         string
-	RepoAddress            string
-	RepoPort               int
-	RepoUser               string
-	RepoPrivateKeyPath     string
-	RepoPath               string
-	SlackReportChannel     string
-	InteractiveCloseReason string
+	ListenDomain string `json:"listenDomain"`
+	ListenPort   int    `json:"listenPort"`
+	Database     struct {
+		Address  string `json:"address"`
+		User     string `json:"user"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+	} `json:"database"`
+	CampusDomain   string `json:"campusDomain"`
+	BatmanEndpoint string `json:"batmanEndpoint"`
+	Vogsphere      struct {
+		Address        string `json:"address"`
+		Port           int    `json:"port"`
+		User           string `json:"user"`
+		PrivateKeyPath string `json:"privateKeyPath"`
+		Path           string `json:"path"`
+	} `json:"vogsphere"`
+	Slack struct {
+		Channel                string `json:"channel"`
+		InteractiveCloseReason string `json:"interactiveCloseReason"`
+	} `json:"slack"`
 }
 
 var config Config
@@ -53,6 +63,9 @@ func loadConfig(path string) error {
 
 func main() {
 	if err := loadConfig("config.json"); err != nil {
+		outputErr(err, true)
+	}
+	if err := openDatabaseConnection(); err != nil {
 		outputErr(err, true)
 	}
 	tq := &reportQueue{

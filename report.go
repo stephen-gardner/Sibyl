@@ -55,20 +55,20 @@ func isCancelledTeam(team *intra.Team, ps *intra.ProjectSession) bool {
 }
 
 func (report *teamReport) loadData(ctx context.Context, deliveryID string, wt *intra.WebTeam) error {
-	it := intra.Team{}
-	if err := it.GetTeam(ctx, false, wt.ID); err != nil {
+	it := intra.Team{ID: wt.ID}
+	if err := it.Get(ctx, false); err != nil {
 		return err
 	}
-	ps := intra.ProjectSession{}
-	if err := ps.GetProjectSession(ctx, false, it.ProjectSessionID); err != nil {
+	ps := intra.ProjectSession{ID: it.ProjectSessionID}
+	if err := ps.Get(ctx, false); err != nil {
 		return err
 	}
 	report.deliveryID = deliveryID
 	report.teamID = wt.ID
 	cursusName := ps.Cursus.Name
 	if ps.Cursus.Name == "" {
-		project := intra.Project{}
-		if err := project.GetProject(ctx, false, wt.Project.ID); err != nil {
+		project := intra.Project{ID: wt.Project.ID}
+		if err := project.Get(ctx, false); err != nil {
 			// We can't get deprecated projects from Intra for some reason
 			if !strings.Contains(err.Error(), "exist") {
 				return err
