@@ -104,7 +104,12 @@ func unlockTeamUsers(rec *TeamRecord) error {
 func flagCheating(rec *TeamRecord) error {
 	for _, user := range rec.Users {
 		experiences := intra.Experiences{}
-		err := experiences.GetForProjectsUser(context.Background(), false, user.ProjectsUserID, nil)
+		err := experiences.GetForProjectsUser(
+			context.Background(),
+			false,
+			user.ProjectsUserID,
+			nil,
+		)
 		if err != nil {
 			return err
 		}

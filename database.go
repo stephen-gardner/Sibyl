@@ -19,14 +19,15 @@ type (
 		Amount            int
 		CreationTime      time.Time
 		CursusID          int
+		TeamRecordUserID  uint
 	}
 	TeamRecordUser struct {
 		gorm.Model
-		UserID         int
-		ProjectsUserID int
-		CloseID        *int
-		ErasedExp      []ErasedExperience
-		TeamRecordID   uint
+		UserID            int
+		ProjectsUserID    int
+		CloseID           *int
+		ErasedExperiences []ErasedExperience
+		TeamRecordID      uint
 	}
 	TeamRecord struct {
 		gorm.Model
@@ -68,7 +69,7 @@ func (rec *TeamRecord) get(teamID int) error {
 	err := db.
 		Where("team_id = ?", teamID).
 		Preload("TeamRecordUsers").
-		Preload("TeamRecordUsers.ErasedExp").
+		Preload("TeamRecordUsers.ErasedExperiences").
 		First(rec).Error
 	if err != nil && err == gorm.ErrRecordNotFound {
 		team := &intra.Team{ID: teamID}
@@ -78,6 +79,9 @@ func (rec *TeamRecord) get(teamID int) error {
 		err = rec.create(team)
 	}
 	if err == nil {
+		if rec.Users == nil {
+			rec.Users = make(map[int]*TeamRecordUser)
+		}
 		for i := range rec.TeamRecordUsers {
 			rec.Users[rec.TeamRecordUsers[i].UserID] = &rec.TeamRecordUsers[i]
 		}
@@ -126,19 +130,20 @@ func (user *TeamRecordUser) addErasedExp(exp *intra.Experience) error {
 		Amount:            exp.Amount,
 		CreationTime:      exp.CreatedAt,
 		CursusID:          exp.CursusID,
+		TeamRecordUserID:  user.ID,
 	}
 	return db.
 		Model(user).
-		Association("ErasedExp").
+		Association("ErasedExperiences").
 		Append(erased).Error
 }
 
 func (user *TeamRecordUser) removeErasedExp(exp *intra.Experience) error {
-	for _, erased := range user.ErasedExp {
+	for _, erased := range user.ErasedExperiences {
 		if erased.ExperiancableID == exp.ExperiancableID {
 			return db.
 				Model(user).
-				Association("ErasedExp").
+				Association("ErasedExperiences").
 				Delete(erased).Error
 		}
 	}
