@@ -17,7 +17,7 @@ type (
 		ExperiancableID   int
 		ExperiancableType string
 		Amount            int
-		CreatedAt         time.Time
+		CreationTime      time.Time
 		CursusID          int
 	}
 	TeamRecordUser struct {
@@ -124,7 +124,7 @@ func (user *TeamRecordUser) addErasedExp(exp *intra.Experience) error {
 		ExperiancableID:   exp.ExperiancableID,
 		ExperiancableType: exp.ExperiancableType,
 		Amount:            exp.Amount,
-		CreatedAt:         exp.CreatedAt,
+		CreationTime:      exp.CreatedAt,
 		CursusID:          exp.CursusID,
 	}
 	return db.
