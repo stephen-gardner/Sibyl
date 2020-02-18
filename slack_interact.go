@@ -169,6 +169,10 @@ func (si *Interaction) process() error {
 		msg := fmt.Sprintf("<@%s> has unlocked this team's users.", si.User.ID)
 		return getSlack().postMessage(si.Container.MessageTs, "", msg)
 	case "flag_cheating":
+		if rec.Cheated == true {
+			msg := "This team has already been flagged for cheating."
+			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
+		}
 		err := flagCheating(rec)
 		if err == nil {
 			err = rec.setCheated(true)
