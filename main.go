@@ -68,11 +68,13 @@ func main() {
 	if err := openDatabaseConnection(); err != nil {
 		outputErr(err, true)
 	}
-	tq := &reportQueue{
+	rq := &reportQueue{
 		in:  make(chan *teamReport),
 		out: make(chan *teamReport),
 	}
-	go tq.processInput()
-	go tq.processOutput()
-	listen(tq)
+	iq := make(interactQueue)
+	go rq.processInput()
+	go rq.processOutput()
+	go iq.processInput()
+	listen(rq, iq)
 }

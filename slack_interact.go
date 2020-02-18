@@ -10,44 +10,47 @@ import (
 	"strings"
 )
 
-type Interaction struct {
-	Type string `json:"type"`
-	Team struct {
-		ID     string `json:"id"`
-		Domain string `json:"domain"`
-	} `json:"team"`
-	User struct {
-		ID       string `json:"id"`
-		Username string `json:"username"`
-		Name     string `json:"name"`
-		TeamID   string `json:"team_id"`
-	} `json:"user"`
-	APIAppID  string `json:"api_app_id"`
-	Container struct {
-		Type         string `json:"type"`
-		MessageTs    string `json:"message_ts"`
-		AttachmentID int    `json:"attachment_id"`
-		ChannelID    string `json:"channel_id"`
-		IsEphemeral  bool   `json:"is_ephemeral"`
-		IsAppUnfurl  bool   `json:"is_app_unfurl"`
-	} `json:"container"`
-	TriggerID   string `json:"trigger_id"`
-	ResponseURL string `json:"response_url"`
-	Actions     []struct {
-		Type           string `json:"type"`
-		BlockID        string `json:"block_id"`
-		ActionID       string `json:"action_id"`
-		SelectedOption struct {
-			Text struct {
-				Type  string `json:"type"`
-				Text  string `json:"text"`
-				Emoji bool   `json:"emoji"`
-			} `json:"text"`
-			Value string `json:"value"`
-		} `json:"selected_option"`
-		ActionTs string `json:"action_ts"`
-	} `json:"actions"`
-}
+type (
+	Interaction struct {
+		Type string `json:"type"`
+		Team struct {
+			ID     string `json:"id"`
+			Domain string `json:"domain"`
+		} `json:"team"`
+		User struct {
+			ID       string `json:"id"`
+			Username string `json:"username"`
+			Name     string `json:"name"`
+			TeamID   string `json:"team_id"`
+		} `json:"user"`
+		APIAppID  string `json:"api_app_id"`
+		Container struct {
+			Type         string `json:"type"`
+			MessageTs    string `json:"message_ts"`
+			AttachmentID int    `json:"attachment_id"`
+			ChannelID    string `json:"channel_id"`
+			IsEphemeral  bool   `json:"is_ephemeral"`
+			IsAppUnfurl  bool   `json:"is_app_unfurl"`
+		} `json:"container"`
+		TriggerID   string `json:"trigger_id"`
+		ResponseURL string `json:"response_url"`
+		Actions     []struct {
+			Type           string `json:"type"`
+			BlockID        string `json:"block_id"`
+			ActionID       string `json:"action_id"`
+			SelectedOption struct {
+				Text struct {
+					Type  string `json:"type"`
+					Text  string `json:"text"`
+					Emoji bool   `json:"emoji"`
+				} `json:"text"`
+				Value string `json:"value"`
+			} `json:"selected_option"`
+			ActionTs string `json:"action_ts"`
+		} `json:"actions"`
+	}
+	interactQueue chan *Interaction
+)
 
 var errTeamUsersLocked = errors.New("team's users are already locked")
 var errTeamUsersUnlocked = errors.New("team's users are not currently locked")
@@ -133,6 +136,37 @@ func flagCheating(rec *TeamRecord) error {
 	return err
 }
 
+func clearCheating(rec *TeamRecord) error {
+	for _, user := range rec.Users {
+		for _, erased := range user.ErasedExperiences {
+			exp := &intra.Experience{
+				UserID:            user.UserID,
+				SkillID:           erased.SkillID,
+				ExperiancableID:   erased.ExperiancableID,
+				ExperiancableType: erased.ExperiancableType,
+				Amount:            erased.Amount,
+				CreatedAt:         erased.CreationTime,
+				CursusID:          erased.CursusID,
+			}
+			err := exp.Create(context.Background(), false)
+			if err == nil {
+				err = user.removeErasedExp(exp)
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+	team := &intra.Team{ID: rec.TeamID}
+	err := team.Get(context.Background(), false)
+	if err == nil {
+		params := url.Values{}
+		params.Set("team[final_mark]", strconv.Itoa(rec.OriginalScore))
+		err = team.Patch(context.Background(), false, params)
+	}
+	return err
+}
+
 func (si *Interaction) reportError(err error) error {
 	outputErr(err, false)
 	msg := "Something went wrong—please try again in a moment."
@@ -182,6 +216,28 @@ func (si *Interaction) process() error {
 		}
 		msg := fmt.Sprintf("<@%s> has flagged this team for cheating.", si.User.ID)
 		return getSlack().postMessage(si.Container.MessageTs, "", msg)
+	case "clear_cheating":
+		if rec.Cheated == false {
+			msg := "This team is not currently flagged for cheating."
+			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
+		}
+		err := clearCheating(rec)
+		if err == nil {
+			err = rec.setCheated(false)
+		}
+		if err != nil {
+			return si.reportError(err)
+		}
+		msg := fmt.Sprintf("<@%s> has cleared this team of cheating and restored their experience.", si.User.ID)
+		return getSlack().postMessage(si.Container.MessageTs, "", msg)
 	}
 	return fmt.Errorf("unsupported action called: %s", action)
+}
+
+func (queue interactQueue) processInput() {
+	for si := range queue {
+		if err := si.process(); err != nil {
+			outputErr(err, false)
+		}
+	}
 }

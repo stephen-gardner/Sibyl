@@ -46,7 +46,7 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleInteraction(w http.ResponseWriter, r *http.Request) {
+func (queue interactQueue) handleInteraction(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
@@ -68,17 +68,15 @@ func handleInteraction(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-	go func(payload *Interaction) {
-		if err := payload.process(); err != nil {
-			outputErr(err, false)
-		}
-	}(payload)
+	go func(queue interactQueue, payload *Interaction) {
+		queue <- payload
+	}(queue, payload)
 	w.WriteHeader(http.StatusOK)
 }
 
-func listen(tq *reportQueue) {
-	http.HandleFunc("/sibyl/slack", handleInteraction)
-	http.HandleFunc("/teams/marked", tq.handleTeamMarked)
+func listen(rq *reportQueue, iq interactQueue) {
+	http.HandleFunc("/sibyl/slack", iq.handleInteraction)
+	http.HandleFunc("/teams/marked", rq.handleTeamMarked)
 	// Display picture for anonymized accounts
 	http.HandleFunc("/3b3.jpg", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, "images/3b3.jpg")
