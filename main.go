@@ -20,9 +20,10 @@ type Config struct {
 		Password string `json:"password"`
 		Name     string `json:"name"`
 	} `json:"database"`
-	CampusDomain   string `json:"campusDomain"`
-	BatmanEndpoint string `json:"batmanEndpoint"`
-	Vogsphere      struct {
+	CampusDomain      string `json:"campusDomain"`
+	BatmanEndpoint    string `json:"batmanEndpoint"`
+	BatmanMaxAttempts int    `json:"batmanMaxAttempts"`
+	Vogsphere         struct {
 		Address        string `json:"address"`
 		Port           int    `json:"port"`
 		User           string `json:"user"`

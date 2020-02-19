@@ -26,7 +26,6 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	fmt.Printf("<%s> IN:\n%s\n", deliveryID, string(data))
 	team := &intra.WebTeam{}
 	if err := json.Unmarshal(data, &team); err != nil {
 		err = fmt.Errorf("[400] %s: %s", err.Error(), string(data))

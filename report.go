@@ -17,14 +17,15 @@ type (
 		attempt int
 	}
 	teamReport struct {
-		deliveryID  string
-		teamID      int
-		name        string
-		leader      string
-		projectSlug string
-		finalMark   int
-		users       []teamReportUser
-		repo        struct {
+		deliveryID     string
+		teamID         int
+		batmanAttempts int
+		name           string
+		leader         string
+		projectSlug    string
+		finalMark      int
+		users          []teamReportUser
+		repo           struct {
 			url        string
 			uuid       string
 			status     string
@@ -131,9 +132,16 @@ func (report *teamReport) generate() (blocks string, err error) {
 func (queue *reportQueue) processInput() {
 	// Batman doesn't handle concurrent requests so well
 	for report := range queue.in {
+		report.batmanAttempts++
 		status, res, err := runBatman(report.leader, report.projectSlug, report.repo.url)
 		if err != nil {
 			outputErr(err, false)
+		}
+		if status == batmanError && report.batmanAttempts < config.BatmanMaxAttempts {
+			go func(queue *reportQueue, report *teamReport) {
+				queue.in <- report
+			}(queue, report)
+			continue
 		}
 		report.repo.status = status
 		if res != nil {
@@ -150,7 +158,6 @@ func (queue *reportQueue) processOutput() {
 	for report := range queue.out {
 		<-slackThrottle
 		blocks, err := report.generate()
-		fmt.Printf("<%s> OUT:\n%s\n", report.deliveryID, blocks)
 		if err == nil {
 			if err = slack.postMessage("", blocks, ""); err == nil && report.repo.matches != "" {
 				err = slack.uploadMatches(report.repo.matches)

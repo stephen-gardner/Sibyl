@@ -9,6 +9,7 @@
   },
   "campusDomain": "42.us.org",
   "batmanEndpoint": "https://batman.42.us.org/",
+  "batmanMaxAttempts": 5,
   "vogsphere": {
     "address": "vgs-fd.42.us.org",
     "port": 4222,
