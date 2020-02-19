@@ -27,10 +27,18 @@
         {
           "text": {
             "type": "plain_text",
-            "text": ":exclamation: Flag as Cheating",
+            "text": ":hammer: Flag as Cheating",
             "emoji": true
           },
           "value": "flag_cheating:{{.TeamID}}"
+        },
+        {
+          "text": {
+            "type": "plain_text",
+            "text": ":ok_hand: Forgive Cheating",
+            "emoji": true
+          },
+          "value": "forgive_cheating:{{.TeamID}}"
         }
       ],
       "action_id": "manage_report",

@@ -25,19 +25,21 @@ type (
 		} `json:"user"`
 		APIAppID  string `json:"api_app_id"`
 		Container struct {
-			Type         string `json:"type"`
-			MessageTs    string `json:"message_ts"`
-			AttachmentID int    `json:"attachment_id"`
-			ChannelID    string `json:"channel_id"`
-			IsEphemeral  bool   `json:"is_ephemeral"`
-			IsAppUnfurl  bool   `json:"is_app_unfurl"`
+			Type        string `json:"type"`
+			MessageTs   string `json:"message_ts"`
+			ChannelID   string `json:"channel_id"`
+			IsEphemeral bool   `json:"is_ephemeral"`
 		} `json:"container"`
-		TriggerID   string `json:"trigger_id"`
+		TriggerID string `json:"trigger_id"`
+		Channel   struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"channel"`
 		ResponseURL string `json:"response_url"`
 		Actions     []struct {
 			Type           string `json:"type"`
-			BlockID        string `json:"block_id"`
 			ActionID       string `json:"action_id"`
+			BlockID        string `json:"block_id"`
 			SelectedOption struct {
 				Text struct {
 					Type  string `json:"type"`
@@ -136,7 +138,7 @@ func flagCheating(rec *TeamRecord) error {
 	return err
 }
 
-func clearCheating(rec *TeamRecord) error {
+func forgiveCheating(rec *TeamRecord) error {
 	for _, user := range rec.Users {
 		for _, erased := range user.ErasedExperiences {
 			exp := &intra.Experience{
@@ -216,12 +218,12 @@ func (si *Interaction) process() error {
 		}
 		msg := fmt.Sprintf("<@%s> has flagged this team for cheating.", si.User.ID)
 		return getSlack().postMessage(si.Container.MessageTs, "", msg)
-	case "clear_cheating":
+	case "forgive_cheating":
 		if rec.Cheated == false {
 			msg := "This team is not currently flagged for cheating."
 			return getSlack().postEphemeralMessage(si.Container.MessageTs, si.User.ID, msg)
 		}
-		err := clearCheating(rec)
+		err := forgiveCheating(rec)
 		if err == nil {
 			err = rec.setCheated(false)
 		}
