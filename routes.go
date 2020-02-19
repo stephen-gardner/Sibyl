@@ -103,7 +103,7 @@ func (queue interactQueue) handleInteraction(w http.ResponseWriter, r *http.Requ
 
 func listen(rq *reportQueue, iq interactQueue) {
 	http.HandleFunc("/sibyl/slack", iq.handleInteraction)
-	http.HandleFunc("/teams/marked", rq.handleTeamMarked)
+	http.HandleFunc("/sibyl/teams/marked", rq.handleTeamMarked)
 	// Display picture for anonymized accounts
 	http.HandleFunc("/3b3.jpg", func(writer http.ResponseWriter, request *http.Request) {
 		http.ServeFile(writer, request, "images/3b3.jpg")
