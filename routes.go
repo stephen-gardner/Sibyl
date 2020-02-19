@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/stephen-gardner/intra"
 )
@@ -45,12 +50,35 @@ func (queue *reportQueue) handleTeamMarked(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
+func verifySignature(header http.Header, body string) (bool, error) {
+	signature, err := hex.DecodeString(strings.TrimPrefix(header.Get("X-Slack-Signature"), "v0="))
+	if err != nil {
+		return false, err
+	}
+	timestamp := header.Get("X-Slack-Request-Timestamp")
+	mac := hmac.New(sha256.New, []byte(os.Getenv("SLACK_SIGNING_SECRET")))
+	mac.Write([]byte(fmt.Sprintf("v0:%s:%s", timestamp, body)))
+	return hmac.Equal(signature, mac.Sum(nil)), nil
+}
+
 func (queue interactQueue) handleInteraction(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
+	body, err := ioutil.ReadAll(r.Body)
+	if err == nil {
+		valid := false
+		if valid, err = verifySignature(r.Header, string(body)); err == nil {
+			if !valid {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+			err = r.ParseForm()
+		}
+	}
+	if err != nil {
 		outputErr(err, false)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
